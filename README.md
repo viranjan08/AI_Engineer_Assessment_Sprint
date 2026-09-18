@@ -1,61 +1,556 @@
-# AI Support Ticket Analytics System
+# DOTMappers AI Engineer Assessment
+## End-to-End AI-Powered Customer Support Ticket Analysis System
 
-## 1. Overview
-This is a comprehensive, production-ready AI system built to analyze customer support tickets. It handles natural language queries via a local LLM, flags anomalies using a hybrid rules/ML approach, and provides a full REST API + Streamlit dashboard.
+An AI-powered customer support ticket analysis system developed for the
+DOTMappers IT Pvt. Ltd. AI Engineer Technical Assessment.
 
-## 2. Problem Statement
-Given a dataset of 500 support tickets, the goal is to:
-- Make the CSV queryable.
-- Support natural language questions natively using a free/local LLM.
-- Identify anomalies (e.g., abnormally long resolution times, overdue high-priority tickets).
-- Expose the capabilities through a REST API and a user interface.
+The system ingests customer support ticket data from CSV, stores it in
+DuckDB, understands natural-language questions using an LLM, executes
+validated analytical queries, detects ticket anomalies, and exposes the
+functionality through both a REST API and a Streamlit UI.
 
-## 3. Features
-- **SQL Safety Engine**: Natural language isn't fed directly into SQL execution. The LLM generates a structured JSON intent, which is validated and converted into read-only SQL.
-- **Hybrid Anomaly Detection**: Combines business rules with an Isolation Forest model to catch statistical outliers in resolution/response times.
-- **Interactive UI**: Streamlit provides a Dashboard, an "Ask AI" chat interface, an Anomalies table, and a Ticket Explorer.
+---
 
-## 4. Architecture
-![Architecture](https://via.placeholder.com/800x400.png?text=Ollama+%E2%86%94+FastAPI+%E2%86%94+DuckDB)
-*Data moves from Pandas -> DuckDB. Queries move from Streamlit -> FastAPI -> Ollama (Intent) -> DuckDB (SQL).*
+## Features
 
-## 5. Technology Stack
-- **Database**: DuckDB (Fast, analytical, file-based SQL)
-- **LLM**: Grok (Cloud LLM API)
-- **Backend API**: FastAPI + Pydantic
-- **Frontend**: Streamlit
-- **Machine Learning**: Scikit-learn (Isolation Forest)
-- **Testing**: Pytest
+- CSV ingestion and data validation
+- DuckDB-based analytical data storage
+- Natural-language querying using an LLM
+- Structured query intent generation
+- Safe SQL generation and read-only SQL execution
+- Customer support ticket analytics
+- Anomaly detection using rule-based and statistical techniques
+- FastAPI REST API
+- Streamlit web interface
+- API health check
+- SQL injection protection
+- Automated tests
 
-## 6. Project Structure
+---
+
+## Architecture
+
+```text
+                    support_tickets.csv
+                            |
+                            v
+                  +--------------------+
+                  | CSV Ingestion      |
+                  | Pandas / Validation|
+                  +---------+----------+
+                            |
+                            v
+                  +--------------------+
+                  |       DuckDB       |
+                  | tickets table      |
+                  +---------+----------+
+                            |
+             +--------------+--------------+
+             |                             |
+             v                             v
+    +------------------+          +-------------------+
+    | LLM Query Layer  |          | Anomaly Detection |
+    | Groq / Llama     |          | Rules + Statistical|
+    +--------+---------+          +---------+---------+
+             |                              |
+             v                              |
+    +------------------+                    |
+    | Query Intent     |                    |
+    | Validation       |                    |
+    +--------+---------+                    |
+             |                              |
+             v                              |
+    +------------------+                    |
+    | Safe SQL Builder |                    |
+    +--------+---------+                    |
+             |                              |
+             +--------------+---------------+
+                            |
+                            v
+                    +---------------+
+                    |   FastAPI     |
+                    +-------+-------+
+                            |
+                  +---------+---------+
+                  |                   |
+                  v                   v
+          REST API clients      Streamlit UI
 ```
-app/          # Core backend logic (API routes, DuckDB manager, LLM/Anomaly services)
-ui/           # Streamlit frontend application
-data/         # Database and dataset storage
-tests/        # Pytest test suites
+
+---
+
+## Technology Stack
+
+| Component         | Technology                                   |
+| ----------------- | -------------------------------------------- |
+| Language          | Python                                       |
+| Data Processing   | Pandas                                       |
+| Database          | DuckDB                                       |
+| LLM               | Groq API with Llama-family open-source model |
+| API               | FastAPI                                      |
+| UI                | Streamlit                                    |
+| Anomaly Detection | Rule-based detection + statistical analysis  |
+| Validation        | Pydantic                                     |
+| Testing           | Pytest                                       |
+
+---
+
+## Project Structure
+
+```text
+dotmappers-ai-assessment/
+│
+├── app/
+│   ├── main.py
+│   ├── api/
+│   │   ├── query.py
+│   │   ├── anomalies.py
+│   │   └── health.py
+│   │
+│   ├── services/
+│   │   ├── llm_service.py
+│   │   ├── anomaly_service.py
+│   │   └── ingestion_service.py
+│   │
+│   ├── database/
+│   │   └── duckdb_manager.py
+│   │
+│   └── models/
+│       └── schemas.py
+│
+├── ui/
+│   └── app.py
+│
+├── data/
+│   └── tickets.duckdb
+│
+├── tests/
+│   ├── test_ingestion.py
+│   ├── test_query.py
+│   ├── test_anomalies.py
+│   └── test_api.py
+│
+├── requirements.txt
+├── run.bat
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-## 7. Setup & Running the Application
+---
 
-1. **Launch everything** via the batch script (Windows):
-   ```cmd
-   run.bat
-   ```
-2. **Access**:
-   - UI: http://localhost:8501
-   - API Docs: http://localhost:8000/docs
+## Dataset
 
-## 8. Natural Language Query Examples
-Try these in the UI's **Ask AI** tab:
-- *"How many tickets are currently open?"*
-- *"Which agent resolved the most tickets this month?"*
-- *"Show me all Critical tickets not resolved within 12 hours."*
-- *"What is the average customer rating for Technical category tickets?"*
+The system uses the provided `support_tickets.csv` dataset containing
+500 customer support tickets.
 
-## 9. Security / Query Safety
-**Can the LLM execute arbitrary SQL?** No. 
-The system forces the LLM to output a strictly typed JSON payload (an "intent"). The backend parses this JSON, sanitizes the inputs, and manually constructs only `SELECT` operations. Commands like `DROP`, `DELETE`, or `UPDATE` are structurally impossible to generate through this pipeline.
+The dataset contains the following fields:
 
-## 10. Known Limitations
-- The LLM intent engine relies on Ollama's ability to output valid JSON. Very complex conversational queries might confuse the Llama 3 8B model.
-- "Current Time" for ticket aging is statically calculated from the maximum date in the CSV to account for older datasets.
+* `ticket_id`
+* `created_at`
+* `category`
+* `priority`
+* `status`
+* `response_time_hrs`
+* `resolution_time_hrs`
+* `agent_id`
+* `customer_rating`
+* `issue_summary`
+
+Unresolved tickets can contain null values for resolution time and
+customer rating.
+
+---
+
+## How the Natural-Language Querying Works
+
+The application does not directly execute arbitrary SQL generated by
+the LLM.
+
+The flow is:
+
+```text
+Natural-language question
+          |
+          v
+        LLM
+          |
+          v
+ Structured Query Intent
+          |
+          v
+ Intent validation
+          |
+          v
+ Safe SQL generation
+          |
+          v
+ DuckDB read-only query
+          |
+          v
+ Result
+          |
+          v
+ Natural-language response
+```
+
+This approach keeps database execution under application control while
+using the LLM primarily for natural-language understanding and query
+intent generation.
+
+---
+
+## Example Queries
+
+### Query 1
+
+**Question**
+
+```text
+How many tickets are currently open?
+```
+
+**Generated SQL**
+
+```sql
+SELECT COUNT(*) AS result
+FROM tickets
+WHERE status = 'Open';
+```
+
+---
+
+### Query 2
+
+**Question**
+
+```text
+Which category has the most tickets?
+```
+
+**Expected query logic**
+
+```sql
+SELECT category, COUNT(*) AS result
+FROM tickets
+GROUP BY category
+ORDER BY result DESC
+LIMIT 1;
+```
+
+**Example result**
+
+```text
+General — 189
+```
+
+---
+
+### Query 3
+
+**Question**
+
+```text
+What is the average customer rating for Technical category tickets?
+```
+
+The system generates an analytical query using the `Technical` category
+and calculates the average customer rating.
+
+---
+
+### Query 4
+
+**Question**
+
+```text
+Show me all Critical tickets not resolved within 12 hours.
+```
+
+The system considers both resolved tickets whose resolution time exceeds
+the threshold and unresolved tickets whose age exceeds the threshold.
+
+---
+
+### Query 5
+
+**Question**
+
+```text
+Are there any anomalies in resolution times this week?
+```
+
+The anomaly detection layer analyses resolution-time behaviour and
+returns detected anomalies and their associated reasons.
+
+---
+
+## Anomaly Detection
+
+The system uses a hybrid anomaly-detection approach.
+
+### Rule-based detection
+
+The application identifies conditions such as:
+
+* High-priority or critical tickets remaining unresolved beyond the
+  configured age threshold
+* Abnormally long resolution times
+
+### Statistical detection
+
+Statistical anomaly detection is also applied to relevant numerical
+ticket attributes.
+
+Each detected anomaly includes information that helps explain why the
+ticket was flagged.
+
+---
+
+## REST API
+
+The application exposes REST endpoints using FastAPI.
+
+### Health Check
+
+```http
+GET /health
+```
+
+Used to verify that the application is running.
+
+### Natural-Language Query
+
+```http
+POST /query
+```
+
+Example request:
+
+```json
+{
+  "question": "How many tickets are currently open?"
+}
+```
+
+### Anomaly Detection
+
+```http
+GET /anomalies
+```
+
+Returns detected ticket anomalies.
+
+FastAPI also provides interactive API documentation when the application
+is running.
+
+---
+
+## Streamlit UI
+
+The Streamlit interface provides a minimal interface for:
+
+* Viewing ticket statistics
+* Asking natural-language questions
+* Viewing query results
+* Inspecting detected anomalies
+* Exploring the ticket dataset
+
+---
+
+## Setup
+
+### Requirements
+
+* Python 3.10+
+* Internet connection for the Groq LLM API
+* Groq API key
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/viranjan08/AI_Engineer_Assessment_Sprint.git
+cd AI_Engineer_Assessment_Sprint
+```
+
+### 2. Create environment variables
+
+Create a `.env` file:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+Do not commit the `.env` file to GitHub.
+
+An example configuration is provided in `.env.example`.
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Start the application
+
+On Windows:
+
+```bat
+run.bat
+```
+
+Alternatively, start the FastAPI application with:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+and start Streamlit separately:
+
+```bash
+streamlit run ui/app.py
+```
+
+---
+
+## API Documentation
+
+After starting FastAPI, the interactive Swagger documentation is
+available through:
+
+```text
+http://localhost:8000/docs
+```
+
+The Streamlit interface runs on:
+
+```text
+http://localhost:8501
+```
+
+---
+
+## Running Tests
+
+Run:
+
+```bash
+pytest tests/
+```
+
+The test suite covers core ingestion, query generation, anomaly
+detection, and API functionality.
+
+---
+
+## Security and Query Safety
+
+The LLM is not given unrestricted database execution privileges.
+
+The application:
+
+1. Converts natural-language questions into structured query intents.
+2. Validates the generated intent.
+3. Generates SQL using application-controlled logic.
+4. Allows read-only database operations.
+5. Rejects unsafe SQL patterns and multi-statement execution.
+
+This reduces the risk of SQL injection and prevents destructive database
+operations.
+
+---
+
+## LLM Design Decision
+
+The system uses a Groq-hosted Llama-family open-source model through the
+Groq API.
+
+A local Ollama-based implementation was considered during development.
+Groq was selected for the submitted implementation because local
+inference introduced significantly higher response latency on the
+available development environment.
+
+The LLM provider is isolated within the LLM service layer so that a
+local model provider can be substituted without changing the database,
+API, anomaly-detection, or UI layers.
+
+The application does not require a paid LLM service.
+
+---
+
+## Design Decisions
+
+### DuckDB
+
+DuckDB was selected because the dataset is tabular and analytical
+queries can be executed efficiently without requiring a separate
+database server.
+
+### LLM + Structured Intent
+
+Instead of allowing the LLM to execute arbitrary SQL, the LLM produces
+a structured representation of the user's intent. The application then
+validates the intent and constructs the database query.
+
+### Hybrid Anomaly Detection
+
+Combining deterministic business rules with statistical anomaly
+detection provides both explainable conditions and data-driven anomaly
+identification.
+
+### FastAPI + Streamlit
+
+FastAPI provides a clean REST interface while Streamlit provides a
+minimal interactive UI for demonstrating the system during evaluation.
+
+---
+
+## Known Limitations
+
+* The submitted LLM implementation uses the Groq API and therefore
+  requires network connectivity and a valid API key.
+* Free-tier LLM services may have request-rate limits.
+* Anomaly thresholds are based on the available dataset and configured
+  detection logic.
+* The system is designed for the provided assessment dataset rather
+  than production-scale distributed workloads.
+
+---
+
+## Future Improvements
+
+* Add a fully local Ollama provider as the default deployment option.
+* Add persistent conversation context for follow-up questions.
+* Add richer anomaly explanations and visualizations.
+* Add authentication and role-based API access.
+* Add production database support such as PostgreSQL.
+* Add Docker-based deployment.
+* Add more comprehensive integration and load testing.
+
+---
+
+## Assessment Requirements Covered
+
+| Requirement                | Implementation                      |
+| -------------------------- | ----------------------------------- |
+| CSV ingestion              | Pandas + DuckDB                     |
+| Queryable ticket data      | DuckDB                              |
+| Natural-language questions | LLM-based query intent              |
+| Anomaly detection          | Rule-based + statistical detection  |
+| REST API                   | FastAPI                             |
+| Minimal UI                 | Streamlit                           |
+| LLM integration            | Groq + Llama-family model           |
+| SQL safety                 | Read-only validated query execution |
+| Testing                    | Pytest                              |
+| Documentation              | This README                         |
+
+---
+
+## Author
+
+**Kottala Viranjaneyulu**
+
+M.Sc. Computer Science
+Central University of Kerala
+
+Developed as part of the **DOTMappers IT Pvt. Ltd. AI Engineer Technical Assessment**.
